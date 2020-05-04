@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Task List</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="A simple crud app made with the vue js and django">
+  <meta name="keywords" content="vuejs, django, crudapp, restapi">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.4.0/css/font-awesome.min.css"
+        rel='stylesheet' type='text/css' />
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+</head>
+<body>
+  <div id="app">
+    <div class="container">
+      <h1>List of Tasks
+        <button 
+          class="btn btn-success" 
+          data-toggle="modal" 
+          data-target="#addTaskModal">
+          <i class="fa fa-plus"></i> Add task
+        </button>
+      </h1>
+      <div class="row">
+        <div class="card-columns">
+          <template v-for="task in tasks">
+            <div class="card">
+              <div class="card-header">
+                <div class="row">
+                  <div class="col text-left">
+                    <!-- <small v-if="task.status !== null">[[ getStatusName(task.status) ]]</small> -->
+                    <small v-if="task.status !== null">[[ task.status.name ]]</small>
+                    <small v-else>Unknown</small>
+                  </div>
+                  <div class="col text-right">
+                    <div class="btn-group btn-group-sm" role="group" aria-label="buttons">
+                      <button type="button" class="btn btn-info" v-on:click="getTask(task.id)">Edit</button>
+                      <button type="button" class="btn btn-danger" v-on:click="deleteTask(task.id)">Delete</button>
+                    </div>
+                  </div>
+                </div>
+                <!-- <button class="btn btn-info btn-sm" >Edit</button>
+                <button class="btn btn-danger btn-sm" v-on:click="deleteTask(task.id)">Delete</button> -->
+              </div>
+              <div class="card-body">
+                <h5 class="card-title">[[task.title]]</h5>
+                <p class="card-text">[[task.content]]</p>
+              </div>
+              <div class="card-footer text-muted">
+                <small>Updated [[formatDate(task.changed)]]</small>
+              </div>
+            </div>
+          </template>
+        </div>
+
+        <div class="modal fade" id="addTaskModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLongTitle" aria-hidden="true">
+          <div class="modal-dialog" role="document">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title" id="exampleModalLongTitle">ADD TASK</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                  <span aria-hidden="true">&times;</span>
+                </button>
+              </div>
+              <form v-on:submit.prevent="addTask()">
+                <div class="modal-body">
+                    <div class="form-group">
+                      <label for="task_title">Title</label>
+                      <input
+                        type="text"
+                        class="form-control"
+                        id="task_title"
+                        placeholder="Enter Title"
+                        v-model="newTask.title"
+                        required="required" >
+                    </div>
+                    <div class="form-group">
+                      <label for="task_content">Content</label>
+                      <textarea
+                        class="form-control"
+                        id="task_content"
+                        placeholder="Enter Content"
+                        v-model="newTask.content"
+                        required="required"
+                        rows="3"></textarea>
+                    </div>
+                </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                <button type="submit" class="btn btn-primary" >Save changes</button>
+              </div>
+              </form>
+            </div>
+          </div>
+         <div class="loading" v-if="loading===true">Loading&#8230;</div>
+        </div>
+
+        <div class="modal fade" id="editTaskModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLongTitle" aria-hidden="true">
+          <div class="modal-dialog" role="document">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title" id="exampleModalLongTitle">EDIT TASK</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                  <span aria-hidden="true">&times;</span>
+                </button>
+              </div>
+              <form v-on:submit.prevent="updateTask()">
+                <div class="modal-body">
+                    <div class="form-group">
+                      <label for="task_title">Title</label>
+                      <input
+                        type="text"
+                        class="form-control"
+                        id="task_title"
+                        placeholder="Enter Title"
+                        v-model="currentTask.title"
+                        required="required" >
+                    </div>
+                    <div class="form-group">
+                      <label for="task_content">Content</label>
+                      <textarea
+                        class="form-control"
+                        id="task_content"
+                        placeholder="Enter Content"
+                        v-model="currentTask.content"
+                        required="required"
+                        rows="3"></textarea>
+                    </div>
+                    <div class="form-group">
+                      <label for="task_status">Status</label>
+                      <select 
+                        id="task_status" 
+                        class="form-control"
+                        v-model="currentTask.status"
+                        required="required">
+                        <option v-for="option in statuses" v-bind:value='option'>
+                          [[option.name]]
+                        </option>
+                      </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                  <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                  <button type="submit" class="btn btn-primary">Save changes</button>
+                </div>
+                </form>
+            </div>
+          </div>
+          <div class="loading" v-if="loading===true">Loading&#8230;</div>
+        </div>
+
+      </div>
+    </div>
+    <div class="loading" v-if="loading===true">Loading&#8230;</div>
+  </div>
+
+  <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+  
+ 
+  <script src="https://cdn.jsdelivr.net/npm/vue@2.5.13/dist/vue.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vue-resource@1.3.5"></script>
+  <script src="https://cdn.jsdelivr.net/npm/axios@0.12.0/dist/axios.min.js"></script>
+  <script>
+    axios.defaults.xsrfCookieName = 'csrftoken';
+    axios.defaults.xsrfHeaderName = "X-CSRFTOKEN";
+    new Vue({
+      el: "#app",
+      delimiters: ["[[","]]"],
+      data: {
+        tasks: [],
+        statuses: [],
+        loading: false,
+        currentTask: {},
+        message: null,
+        newTask: { "title": null, "content": null},
+      },
+      mounted: function() {
+        this.getTasks();
+        this.getStatuses();
+      },
+      methods: {
+        getStatuses: function() {
+          this.loading = true;
+          var vm = this;
+          axios.get("/api/statuses/")
+              .then((response) => {
+                vm.statuses = response.data;
+                vm.loading = false;
+              })
+              .catch((err) => {
+                vm.loading = false;
+                console.log(err);
+              })
+        },
+        getTasks: function() {
+          this.loading = true;
+          var vm = this;
+          axios.get("/api/tasks/")
+              .then((response) => {
+                vm.tasks = response.data;
+                vm.loading = false;
+              })
+              .catch((err) => {
+                vm.loading = false;
+                console.log(err);
+              })
+         },
+         getTask: function(id) {
+          this.loading = true;
+          axios.get(`/api/tasks/${id}/`)
+              .then((response) => {
+                this.currentTask = response.data;
+                $("#editTaskModal").modal('show');
+                this.loading = false;
+              })
+              .catch((err) => {
+                this.loading = false;
+                console.log(err);
+              })
+         },
+         addTask: function() {
+          this.loading = true;
+          var vm = this;
+          axios.post("/api/tasks/", vm.newTask)
+              .then((response) => {
+                vm.loading = false;
+                vm.getTasks();
+              })
+              .catch((err) => {
+                vm.loading = false;
+                console.log(err);
+              })
+         },
+         updateTask: function() {
+          this.loading = true;
+          axios.put(`/api/tasks/${this.currentTask.id}/`, this.currentTask)
+              .then((response) => {
+                this.loading = false;
+                this.currentTask = response.data;
+                this.getTasks();
+              })
+              .catch((err) => {
+                this.loading = false;
+                console.log(err);
+              })
+         },
+         deleteTask: function(id) {
+          this.loading = true;
+          axios.delete(`/api/tasks/${id}/`)
+              .then((response) => {
+                this.loading = false;
+                this.getTasks();
+              })
+              .catch((err) => {
+                this.loading = false;
+                console.log(err);
+              })
+         },
+        formatDate: function(raw_date) {
+            var options = { 
+              year: 'numeric', 
+              month: 'long', 
+              day: 'numeric', 
+              hour: 'numeric',
+              minute: 'numeric'
+            };
+            const newDate = new Date(raw_date);
+            return newDate.toLocaleDateString("en-US", options);
+        },
+        getStatusName: function(status_id) {
+          var result = "Unknown";
+          const statuses = Object.values(this.statuses)
+          for (const [i, val] in statuses) {
+            if (val.id === status_id) {
+              result = val.name;
+              break;
+            }
+          }
+            return result;
+        }
+      }
+    });
+    </script>
+</body>
+</html>
